@@ -108,14 +108,19 @@ const useGlobal = useGlobalStore()
 const getPanelDataInSelect = async () => {
     const res = await axios.get(`${webConfig.baseUrl}/paneldata-champselect`)
     const data = {
-        teams: [res.data],
+        teams: [res.data[0]],
+        teamup: [res.data[1]],
     }
     useGlobal.setCurrentGame(data)
 }
 const getPanelDataInGame = async () => {
     const res = await axios.get(`${webConfig.baseUrl}/paneldata-game`)
+    // const data = {
+    //     teams: [res.data['ORDER'], res.data['CHAOS']],
+    // }
     const data = {
-        teams: [res.data['ORDER'], res.data['CHAOS']],
+        teams: [res.data[0]['ORDER'], res.data[0]['CHAOS']],
+        teamup: [res.data[1]['ORDER'], res.data[1]['CHAOS']],
     }
     useGlobal.setCurrentGame(data)
 }
@@ -135,6 +140,7 @@ watch(
     },
 )
 onMounted(async () => {
+    await useGlobal.getSetting()
     summoner.value = await useGlobal.getSummonerInfo()
     ws_instance.onmessage = async (event) => {
         const data = JSON.parse(event.data)
@@ -144,15 +150,14 @@ onMounted(async () => {
                 // 获取面板数据inselect
                 setTimeout(async () => {
                     await getPanelDataInSelect()
-                }, 3000)
+                    await send_remarks()
+                }, 2000)
             }
             if (data.data === 'InProgress') {
                 // 获取面板数据ingame
                 setTimeout(async () => {
                     await getPanelDataInGame()
                 }, 5000)
-            } else {
-                console.log(data.data)
             }
         }
     }
@@ -166,6 +171,30 @@ const onKeyDown = async (event) => {
         const res = await axios.get(`${webConfig.baseUrl}/summoner-byname/${summonerName.value}`)
         router.push('/account/' + res.data.summonerId)
     }
+}
+const send_remarks = async () => {
+    if (!useGlobal.settings.remark.enable || useGlobal.current_game === null) return
+    let msg = 'RIVEN英雄联盟助手:'
+    const sorted = useGlobal.current_game.teams[0].sort((a, b) => {
+        a.match.source - b.match.source
+    })
+    sorted.forEach((summoner) => {
+        if (
+            !useGlobal.settings.remark.excludeme ||
+            summoner.summonerId != useGlobal.summoner.summonerId
+        ) {
+            msg += `\n玩家：${summoner.summonerName} 评分${summoner.match.source.toFixed(1)}`
+        }
+    })
+    const teamup1 = useGlobal.current_game.teamup[0][0].join(',')
+    const teamup2 = useGlobal.current_game.teamup[0][1].join(',')
+    if (teamup1 || teamup2) {
+        msg += `\n我方组排: ${teamup1 ? `(${teamup1})` : ''} ${teamup1 ? `(${teamup1})` : ''}`
+    }
+    await axios.post(webConfig.baseUrl + '/send_msg', {
+        msg: msg,
+        type: useGlobal.settings.remark.type,
+    })
 }
 </script>
 <style lang="scss" scoped>

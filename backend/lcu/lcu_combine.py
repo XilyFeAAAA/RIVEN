@@ -6,8 +6,9 @@ from typing import Dict
 from ordered_set import OrderedSet
 from .lcu_base import Base
 from collections import Counter, defaultdict
-from utils.common import transformDate, async_timeit
+from utils.common import transformDate, async_timeit, get_gamemode_byQueue, check_teamup
 from utils.config import config
+from utils.opgg import get_rank_rune, get_nor_rune, get_champ_position
 from core.config import settings
 from .enums import gameMode
 
@@ -16,19 +17,18 @@ class lcu_combine(Base):
 
     async def banpick_roll(self, data: dict):
         """大乱斗抢英雄"""
-        if config['autoBanPick']['roll']['enable']:
-            print("进入大乱斗bp")
+        if config['autoBanPick']['roll']['enable'] and not self.champ_lock:
             prefers = OrderedSet(config['autoBanPick']['roll']['swap'])
             # 判断当前英雄是否为偏爱英雄
             for summoner in data['myTeam']:
                 if summoner['summonerId'] == self._info['summonerId'] and summoner['championId'] in prefers:
-                    print("当前为偏爱英雄")
                     return
             bench = OrderedSet([champion['championId'] for champion in data['benchChampions']])
             # 得到偏爱英雄与可选英雄交集
             for championId in prefers.intersection(bench):
                 res = await self.champ_swap(championId)
                 if res is None:
+                    self.champ_lock = True  # 选完英雄锁定
                     return
 
     @async_timeit
@@ -44,7 +44,7 @@ class lcu_combine(Base):
                 continue
             curSetting = config['loot'][loot['type']]
             # 不分解未拥有 且 未拥有
-            if not curSetting['sellNotOwned'] and loot['itemStatus'] == 'NONE':
+            if curSetting['sellNotOwned'] and loot['itemStatus'] == 'NONE':
                 continue
             # 价格过低
             if curSetting['sellMinValue'] > loot['disenchantValue']:
@@ -72,102 +72,108 @@ class lcu_combine(Base):
                 else:
                     tot_orange += loot['disenchantValue'] * count
 
-    # async def SetRune(self):
-    #     """自动配置符文"""
-    #     championId = await self.GetCurrentChamp()
-    #     if championId == 0:
-    #         logger.info("配置符文失败")
-    #         return
-    #     runes = requests.get(f'https://www.bangingheads.net/runes?champion={championId}').json()
-    #     page = (await self.doGet(ROUTE.current_rune)).json()
-    #     if 'errorCode' not in page:
-    #         await self.doDelete(f'/lol-perks/v1/pages/{page["id"]}')
-    #     logger.info("成功配置符文")
-    #     return await self.doPost(ROUTE.page, json={
-    #         "name": "Automatic rune configuration",
-    #         "primaryStyleId": runes['primaryTree'],
-    #         "subStyleId": runes['secondaryTree'],
-    #         "selectedPerkIds": runes['perks'],
-    #         "current": True
-    #     })
+    async def auto_rune(self, data: json):
+        """自动配置符文"""
+        if not config['autoUseRune'] or self.rune_lock:
+            return
+        championId = data['data']
+        mode = get_gamemode_byQueue(await self.get_current_queue())
+        if mode == 'rank':
+            position = get_champ_position(championId)
+            rune = get_rank_rune(championId, position)
+        else:
+            rune = get_nor_rune(championId, mode)
+        perk_ids = rune['primary_rune_ids'] + rune['secondary_rune_ids'] + rune['stat_mod_ids']
+        new_rune = {
+            "name": "OP.GG",
+            "order": rune['id'],
+            "primaryStyleId": rune['primary_page_id'],
+            "subStyleId": rune['secondary_page_id'],
+            "selectedPerkIds": perk_ids,
+            "current": True
+        }
+        all_runes = await self.get_all_runes()
+        await self.delete_rune(all_runes[0]['id'])
+        await self.set_rune(new_rune)
+        self.rune_lock = True
+        return await self.send_remarks(f"[RIVEN英雄联盟助手]已配置符文", "SELF")
 
     async def banpick_classic(self, data: json):
         """
         经典模式BP
         """
-        try:
-            print("经典模式BANPICK")
-            cellId: int = None
-            position: str = None
-            for order in data['myTeam']:
-                if order['summonerId'] == self._info['summonerId']:
-                    cellId = order['cellId']
-                    position = order['assignedPosition']
-                    break
-            actions = data['actions']
-            # 如果当前为BAN_PICK阶段则进入
-            if data['timer']['phase'] == 'BAN_PICK':
+        if self.champ_lock:
+            return
+        cellId: int = None
+        position: str = None
+        for order in data['myTeam']:
+            if order['summonerId'] == self._info['summonerId']:
+                cellId = order['cellId']
+                position = order['assignedPosition']
+                break
+        actions = data['actions']
+        # 如果当前为BAN_PICK阶段则进入
+        if data['timer']['phase'] == 'BAN_PICK':
+            """
+            进入条件：
+            1.position为空 => 匹配模式
+            2.配置文件打开pick
+            """
+            if not position and config['autoBanPick']['pick']['enable']:
+                position = 'normal'
+                for action in actions[0]:
+                    if action['actorCellId'] == cellId:
+                        pickActionId = action['id']
+                        if not action['completed'] and action['isInProgress']:
+                            # 取pickable和picks的交集
+                            pickable = OrderedSet(await self.get_pickable())
+                            picks = OrderedSet(config['autoBanPick']['pick'][position])
+                            for pick in picks.intersection(pickable):
+                                res = await self.champ_select(pick, pickActionId, 'pick')
+                                if res is None:
+                                    # 无返回值则选择成功
+                                    self.champ_lock = True  # 选完英雄锁定
+                                    break
+                            return
+            else:
                 """
-                进入条件：
-                1.position为空 => 匹配模式
-                2.配置文件打开pick
+                actions[0]是ban的action
+                actions[2:]是pick的action
                 """
-                if not position and config['autoBanPick']['pick']['enable']:
-                    position = 'normal'
-                    for action in actions[0]:
-                        if action['actorCellId'] == cellId:
-                            pickActionId = action['id']
-                            if not action['completed'] and action['isInProgress']:
-                                # 取pickable和picks的交集
-                                pickable = OrderedSet(await self.get_pickable())
-                                picks = OrderedSet(config['autoBanPick']['pick'][position])
-                                for pick in picks.intersection(pickable):
-                                    res = await self.champ_select(pick, pickActionId, 'pick')
-                                    if res is None:
-                                        # 无返回值则选择成功
-                                        print(f"[匹配模式] 选中英雄championId={pick}")
-                                        break
-                                return
-                else:
-                    """
-                    actions[0]是ban的action
-                    actions[2:]是pick的action
-                    """
-                    for index, actionItem in enumerate(actions):
-                        if index == 0 and config['autoBanPick']['ban']['enable']:
-                            for action in actionItem[index]:
-                                if action['actorCellId'] == cellId:
-                                    banActionId = action['id']
-                                    # isInProgress 和 not completed 才能banpick
-                                    if not action['completed'] and action['isInProgress']:
-                                        # 取bannable和bans的交集
-                                        bannable = OrderedSet(await self.get_bannable())
-                                        bans = OrderedSet(config['autoBanPick']['ban'][position])
-                                        for ban in bans.intersection(bannable):
-                                            res = await self.champ_select(ban, banActionId, 'ban')
-                                            if res is None:
-                                                # 通过是否报错判断有没有交换成功
-                                                print(f"[排位模式] 禁用英雄championId={ban}")
-                                                break
-                                        # 如果是BAN环节，就算没有ban成功也return
-                                        return
-                        elif index >= 2 and config['autoBanPick']['pick']['enable']:
-                            for action in actionItem[index]:
-                                if action['actorCellId'] == cellId:
-                                    pickActionId = action['id']
-                                    if not action['completed'] and action['isInProgress']:
-                                        # 取pickable和picks的交集
-                                        pickable = OrderedSet(await self.get_pickable())
-                                        picks = OrderedSet(config['autoBanPick']['pick'][position])
-                                        for pick in picks.intersection(pickable):
-                                            res: dict = await self.champ_select(pick, pickActionId, 'pick')
-                                            if res is None:
-                                                # 通过是否报错判断有没有交换成功
-                                                print(f"[排位模式] 选中英雄championId={pick}")
-                                                break
-                                        return
-        except Exception as e:
-            print(e)
+                for index, actionItem in enumerate(actions):
+                    if index == 0 and config['autoBanPick']['ban']['enable']:
+                        for action in actionItem[index]:
+                            if action['actorCellId'] == cellId:
+                                banActionId = action['id']
+                                # isInProgress 和 not completed 才能banpick
+                                if not action['completed'] and action['isInProgress']:
+                                    # 取bannable和bans的交集
+                                    bannable = OrderedSet(await self.get_bannable())
+                                    bans = OrderedSet(config['autoBanPick']['ban'][position])
+                                    for ban in bans.intersection(bannable):
+                                        res = await self.champ_select(ban, banActionId, 'ban')
+                                        if res is None:
+                                            # 通过是否报错判断有没有交换成功
+                                            print(f"[排位模式] 禁用英雄championId={ban}")
+                                            break
+                                    # 如果是BAN环节，就算没有ban成功也return
+                                    return
+                    elif index >= 2 and config['autoBanPick']['pick']['enable']:
+                        for action in actionItem[index]:
+                            if action['actorCellId'] == cellId:
+                                pickActionId = action['id']
+                                if not action['completed'] and action['isInProgress']:
+                                    # 取pickable和picks的交集
+                                    pickable = OrderedSet(await self.get_pickable())
+                                    picks = OrderedSet(config['autoBanPick']['pick'][position])
+                                    for pick in picks.intersection(pickable):
+                                        res: dict = await self.champ_select(pick, pickActionId, 'pick')
+                                        if res is None:
+                                            # 通过是否报错判断有没有交换成功
+                                            self.champ_lock = True  # 选完英雄锁定
+                                            print(f"[排位模式] 选中英雄championId={pick}")
+                                            break
+                                    return
 
     @async_timeit
     async def get_rencent_20_data(self, puuid: str) -> dict:
@@ -273,18 +279,29 @@ class lcu_combine(Base):
         """
         summonerIds = await self.get_chatroom_summonerIds()
         players = []
+        teamup= []
         for summonerId in summonerIds:
             summonerInfo = {} if summonerId == 0 else await self.get_info_by_id(summonerId)
             temp = await self.handle_player_detail(summonerInfo)
             players.append(temp)
-        return players
+            teamup.append({
+                'summonerName': temp['summonerName'],
+                'gameIds': temp['match']['gameIds']
+            })
+        teamup = check_teamup(teamup)
+        return players, teamup
 
     async def get_players_info(self):
         """
         获得对局时全部召唤师信息
         """
         players = None
+        # temp存数据， team存组队信息
         temp = {
+            "ORDER": [],
+            "CHAOS": []
+        }
+        team = {
             "ORDER": [],
             "CHAOS": []
         }
@@ -296,9 +313,19 @@ class lcu_combine(Base):
         if players is None:
             return
         for player in players:
-            summonerInfo = {} if player['isBot'] else await self.get_info_by_name(player['summonerName'])
-            temp[player['team']].append(await self.handle_player_detail(summonerInfo))
-        return temp
+            if player['isBot']:
+                continue
+            summonerInfo = await self.get_info_by_name(player['summonerName'])
+            # handle_player_detail 在这里加入gameIds
+            player_info = await self.handle_player_detail(summonerInfo)
+            temp[player['team']].append(player_info)
+            team[player['team']].append({
+                'summonerName': player_info['summonerName'],
+                'gameIds': player_info['match']['gameIds']
+            })
+        team["ORDER"] = check_teamup(team["ORDER"])
+        team["CHAOS"] = check_teamup(team["CHAOS"])
+        return temp, team
 
     async def auto_report(self):
         """
@@ -308,7 +335,8 @@ class lcu_combine(Base):
         for team in end['teams']:
             for player in team['players']:
                 if player['summonerId'] != self._info['summonerId']:
-                    print(await self.gameover_complaint(end['gameId'], "Negative Attitude, Verbal Abuse", "逃跑", player['summonerId']))
+                    print(await self.gameover_complaint(end['gameId'], "Negative Attitude, Verbal Abuse", "逃跑",
+                                                        player['summonerId']))
 
     @async_timeit
     async def handle_match_detail(self, gameId: int):
@@ -333,24 +361,39 @@ class lcu_combine(Base):
         }
         for i, participant in enumerate(current_game['participants']):
             # 计算雷达图
-            analysis['summoners']['each'][i]['Kda'] = round((participant['stats']['kills'] + participant['stats']['assists']) / max(participant['stats']['deaths'], 1), 1)
-            analysis['summoners']['max']['Kda'] = max(analysis['summoners']['max'].get('Kda', 0), analysis['summoners']['each'][i]['Kda'])
-            analysis['summoners']['each'][i]['DamageMinDealt'] = round(participant['stats']['totalDamageDealt'] / current_game['gameDuration'] * 60, 1)
-            analysis['summoners']['max']['DamageMinDealt'] = max(analysis['summoners']['max'].get('DamageMinDealt', 0), analysis['summoners']['each'][i]['DamageMinDealt'])
-            analysis['summoners']['each'][i]['DamageMinTaken'] = round(participant['stats']['totalDamageTaken'] / current_game['gameDuration'] * 60, 1)
-            analysis['summoners']['max']['DamageMinTaken'] = max(analysis['summoners']['max'].get('DamageMinTaken', 0), analysis['summoners']['each'][i]['DamageMinTaken'])
-            analysis['summoners']['each'][i]['DamageConversion'] = round(participant['stats']['totalDamageDealt'] / participant['stats']['goldEarned'])
-            analysis['summoners']['max']['DamageConversion'] = max(analysis['summoners']['max'].get('DamageConversion', 0), analysis['summoners']['each'][i]['DamageConversion'])
-            analysis['summoners']['each'][i]['GoldMinEarned'] = round(participant['stats']['goldEarned'] / current_game['gameDuration'] * 60, 1)
-            analysis['summoners']['max']['GoldMinEarned'] = max(analysis['summoners']['max'].get('GoldMinEarned', 0), analysis['summoners']['each'][i]['GoldMinEarned'])
+            analysis['summoners']['each'][i]['Kda'] = round(
+                (participant['stats']['kills'] + participant['stats']['assists']) / max(participant['stats']['deaths'],
+                                                                                        1), 1)
+            analysis['summoners']['max']['Kda'] = max(analysis['summoners']['max'].get('Kda', 0),
+                                                      analysis['summoners']['each'][i]['Kda'])
+            analysis['summoners']['each'][i]['DamageMinDealt'] = round(
+                participant['stats']['totalDamageDealt'] / current_game['gameDuration'] * 60, 1)
+            analysis['summoners']['max']['DamageMinDealt'] = max(analysis['summoners']['max'].get('DamageMinDealt', 0),
+                                                                 analysis['summoners']['each'][i]['DamageMinDealt'])
+            analysis['summoners']['each'][i]['DamageMinTaken'] = round(
+                participant['stats']['totalDamageTaken'] / current_game['gameDuration'] * 60, 1)
+            analysis['summoners']['max']['DamageMinTaken'] = max(analysis['summoners']['max'].get('DamageMinTaken', 0),
+                                                                 analysis['summoners']['each'][i]['DamageMinTaken'])
+            analysis['summoners']['each'][i]['DamageConversion'] = round(
+                participant['stats']['totalDamageDealt'] / participant['stats']['goldEarned'])
+            analysis['summoners']['max']['DamageConversion'] = max(
+                analysis['summoners']['max'].get('DamageConversion', 0),
+                analysis['summoners']['each'][i]['DamageConversion'])
+            analysis['summoners']['each'][i]['GoldMinEarned'] = round(
+                participant['stats']['goldEarned'] / current_game['gameDuration'] * 60, 1)
+            analysis['summoners']['max']['GoldMinEarned'] = max(analysis['summoners']['max'].get('GoldMinEarned', 0),
+                                                                analysis['summoners']['each'][i]['GoldMinEarned'])
             analysis['summoners']['each'][i]['Survivbility'] = round(100 / max(participant['stats']['deaths'], 1), 1)
-            analysis['summoners']['max']['Survivbility'] = max(analysis['summoners']['max'].get('Survivbility', 0), analysis['summoners']['each'][i]['Survivbility'])
+            analysis['summoners']['max']['Survivbility'] = max(analysis['summoners']['max'].get('Survivbility', 0),
+                                                               analysis['summoners']['each'][i]['Survivbility'])
             team_id = participant['teamId']
             analysis['teams'][team_id // 100 - 1]['summonerIdx'].append(i)
             # 计算队伍总数据
             for key, value in participant['stats'].items():
                 analysis['teams'][team_id // 100 - 1]['totalInfo'][key] += value
-                analysis['teams'][team_id // 100 - 1]['maxInfo'][key] = max(value, analysis['teams'][team_id // 100 - 1]['maxInfo'][key])
+                analysis['teams'][team_id // 100 - 1]['maxInfo'][key] = max(value,
+                                                                            analysis['teams'][team_id // 100 - 1][
+                                                                                'maxInfo'][key])
         analysis['teams'][0].update(current_game['teams'][0])
         analysis['teams'][0]['totalInfo'] = dict(analysis['teams'][0]['totalInfo'])
         analysis['teams'][0]['maxInfo'] = dict(analysis['teams'][0]['maxInfo'])
@@ -375,6 +418,7 @@ class lcu_combine(Base):
             "source": 0,
             "kda": 0,
             "rate": 0,
+            "gameIds": []
         }
         if not isBot:
             games = (await self.get_rank_list_by_puuid(0, 30, summonerInfo['puuid']))['games']['games']
@@ -397,6 +441,7 @@ class lcu_combine(Base):
                 kill += game['participants'][0]['stats']['kills']
                 assist += game['participants'][0]['stats']['assists']
                 death += game['participants'][0]['stats']['deaths']
+                temp['match']['gameIds'].append(game['gameId'])
             temp['match']['kda'] = (kill + assist) / max(death, 1)
             temp['match']['rate'] = win / len(games)
             temp['match']['source'] = (temp['match']['kda'] * 10 * 0.4 + temp['match'][
@@ -414,3 +459,28 @@ class lcu_combine(Base):
         创建大乱斗
         """
         return await self.create_lobby('ARAM', 12, "LUX:自定义极地大乱斗", 5)
+
+    async def send_remarks(self, msg: str, type: str):
+        """
+        发送牛马评分
+        （前端判断发送逻辑）
+        """
+        return await self.send_msg_champselect(type, msg)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

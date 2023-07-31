@@ -6,6 +6,7 @@ import axios from 'axios'
 const api = {
     summoner: '/current-summoner',
     state: '/state',
+    setting: '/get-app-setting',
 }
 
 // 创建 store
@@ -15,6 +16,7 @@ const useGlobalStore = defineStore('global', {
         _summoner: null,
         _current_game: null,
         _api_connected: false,
+        _settings: null,
     }),
     getters: {
         summoner: (state) => {
@@ -25,6 +27,9 @@ const useGlobalStore = defineStore('global', {
         },
         api_connected: (state) => {
             return state._api_connected
+        },
+        settings: (state) => {
+            return state._settings
         },
     },
     // 定义 actions，有同步和异步两种类型
@@ -47,8 +52,15 @@ const useGlobalStore = defineStore('global', {
                 return false
             }
         },
+        async getSetting() {
+            const res = await axios.get(webConfig.baseUrl + api.setting)
+            this._settings = res.data
+        },
         setCurrentGame(game) {
             this._current_game = game
+        },
+        setSetting(new_setting) {
+            this._settings = new_setting
         },
     },
 })

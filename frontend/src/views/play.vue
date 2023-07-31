@@ -41,8 +41,22 @@
                                         }}
                                     </span>
                                 </div>
-                                <div>
-                                    <span class="text-[15px] font-bold text-gray-700">
+                                <div class="flex items-center">
+                                    <span
+                                        v-if="
+                                            summoner.summonerName in game.teamup[idx][0] ||
+                                            summoner.summonerName in game.teamup[idx][1]
+                                        "
+                                        class="text-xs px-2 text-white font-bold"
+                                        :class="
+                                            summoner.summonerName in game.teamup[idx][0]
+                                                ? 'bg-[#ff8a6d]'
+                                                : 'bg-[#00c9b7]'
+                                        "
+                                    >
+                                        组队
+                                    </span>
+                                    <span class="text-[15px] font-bold text-gray-700 ml-2">
                                         灵活:
                                         {{
                                             webConfig.rank[
@@ -68,7 +82,7 @@
                                 </div>
                                 <div class="flex">
                                     <positionImg
-                                        v-if="summoner.position !== 'UNKNOW'"
+                                        v-if="summoner.position !== 'UNKNOWN'"
                                         width="30"
                                         :position="summoner.position"
                                     />

@@ -2,8 +2,8 @@
     <div class="w-full h-full flex bg-[#f2f5f8]">
         <div class="h-full w-[420px] bg-white border border-[rgba(0, 0, 0, 0.12)] elevation-1">
             <div class="py-14 text-center">
-                <div class="font-bold text-4xl text-[#344767]">Lux Helper</div>
-                <div class="my-4 text-">Welcome! Let's build amazing things together.</div>
+                <div class="font-bold text-4xl text-[#344767]">RIVEN Helper</div>
+                <div class="my-4 text-">Your exclusive League of Legends assistant!</div>
             </div>
         </div>
         <div class="flex-1 h-full flex flex-col justify-center items-center">

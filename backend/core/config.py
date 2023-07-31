@@ -30,4 +30,8 @@ class Settings:
 
     IMGS_PATH: Path = WORK_PATH / 'assets/imgs'
 
+    OPGG_RANK_RUNE_URL: str = "https://lol-api-champion.op.gg/api/KR/champions/ranked/{}/{}"
+    OPGG_NOR_RUNE_URL: str = "https://lol-api-champion.op.gg/api/kr/champions/{}/{}/none"
+    OPGG_DATA_URL: str = "https://lol-api-champion.op.gg/api/KR/champions/ranked"
+
 settings = Settings()

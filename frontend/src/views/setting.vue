@@ -445,7 +445,7 @@
                                                 />
                                             </el-select>
                                             <checkbox
-                                                id="autoban"
+                                                id="autoroll"
                                                 v-model:checked="settings.autoBanPick.roll.enable"
                                             />
                                         </div>
@@ -840,8 +840,26 @@
                                             </div>
                                         </div>
                                         <div class="h-full flex justify-center items-center">
-                                            <el-button>
+                                            <el-button @click="onLootDissovle">
                                                 <span class="text-sm text-gray-500">分解碎片</span>
+                                            </el-button>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div class="flex h-20">
+                                        <div class="h-full flex-1 flex flex-col justify-center">
+                                            <div>
+                                                <span class="text-lg">牛马评分</span>
+                                            </div>
+                                            <div class="mt-1">
+                                                <div class="text-gray-500 text-sm truncate">
+                                                    在英雄选择界面发送队友牛马评分
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="h-full flex justify-center items-center">
+                                            <el-button @click="nmVisible = true">
+                                                <span class="text-sm text-gray-500">修改配置</span>
                                             </el-button>
                                         </div>
                                     </div>
@@ -1072,10 +1090,41 @@
                 </div>
             </div>
         </el-dialog>
+        <el-dialog v-model="nmVisible" title="牛马评分配置" width="600px">
+            <div class="py-2 px-5">
+                <div class="h-8 leading-8 flex items-ceter justify-between">
+                    <div>
+                        <span>开启</span>
+                    </div>
+                    <div>
+                        <el-switch v-model="settings.remark.enable" />
+                    </div>
+                </div>
+                <div class="h-8 leading-8 flex items-ceter justify-between">
+                    <div>
+                        <span>是否排除自己</span>
+                    </div>
+                    <div>
+                        <el-switch v-model="settings.remark.excludeme" />
+                    </div>
+                </div>
+                <div class="h-8 leading-8 flex items-ceter justify-between">
+                    <div>
+                        <span>发送对象</span>
+                    </div>
+                    <div>
+                        <el-select v-model="settings.remark.type" size="small">
+                            <el-option label="所有人" value="ALL" />
+                            <el-option label="自己" value="ME" />
+                        </el-select>
+                    </div>
+                </div>
+            </div>
+        </el-dialog>
     </div>
 </template>
 <script setup>
-import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { checkbox } from '@/components/basic'
 import { useGlobalStore } from '@/stores'
@@ -1083,13 +1132,13 @@ import collapseTransition from '@/utils/collapse-transition'
 import webConfig from '@/global.config'
 import axios from 'axios'
 import VlazyImage from 'v-lazy-image'
-const profileImg = defineAsyncComponent(() => import('@/components/icons/profileImg.vue'))
 // pinia
 const useGlobal = useGlobalStore()
 // ref
 const blueEssenceOption = [0, 90, 270, 630, 960, 1260]
 const orangeEssenceOption = [0, 500, 900, 1400]
 const lootVisible = ref(false)
+const nmVisible = ref(false)
 const iconVisible = ref(false)
 const bgVisible = ref(false)
 const el_bgChampion = ref()
@@ -1151,10 +1200,6 @@ const onbgChampChange = async () => {
 const onSettingsChange = async () => {
     await axios.post(webConfig.baseUrl + '/change-app-setting', settings.value)
 }
-const getSetting = async () => {
-    const res = await axios.get(webConfig.baseUrl + '/get-app-setting')
-    settings.value = res.data
-}
 const onRankChange = async () => {
     await axios.post(webConfig.baseUrl + '/forgeRank', {
         rtier: el_rank.value,
@@ -1165,6 +1210,7 @@ const onRankChange = async () => {
 const onStatusChange = async () => {
     await axios.post(webConfig.baseUrl + `/change-status/${el_status.value}`)
 }
+
 const onNameChange = async () => {
     await axios.post(webConfig.baseUrl + '/change-name', `${el_name.value}`)
     el_name.value = ''
@@ -1188,7 +1234,9 @@ const onProfileIconChange = async (id) => {
         ElMessage('已经更换头像')
     }
 }
-
+const onLootDissovle = async () => {
+    await axios.post(webConfig.baseUrl + '/loot-dissolve')
+}
 const onBgSkinChange = async () => {
     if (el_bgSkin.value) {
         const res = await axios.post(webConfig.baseUrl + '/change-bgSkin/' + el_bgSkin.value)
@@ -1202,12 +1250,14 @@ watch(
     async (to, prev) => {
         if (prev != null) {
             await onSettingsChange()
+            useGlobal.setSetting(settings.value)
         }
     },
     { deep: true },
 )
 onMounted(async () => {
-    await getSetting()
+    await useGlobal.getSetting()
+    settings.value = useGlobal.settings
 })
 </script>
 <style lang="scss" scoped>

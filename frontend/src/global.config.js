@@ -1,5 +1,5 @@
 export default {
-    version: '1.0.00',
+    version: '1.1.02',
     author: '椰果去冰七分甜',
     baseUrl: 'http://localhost:7070/api/v1',
     nav_list: [

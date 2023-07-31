@@ -215,3 +215,9 @@ async def _(folder: str, file: str):
         return FileResponse(filepath)
     except:
         return False
+
+
+@router.post('/send_msg')
+async def _(msg: str = Body(), type: str = Body(), instance: lcu = Depends(get_current_lcu)):
+    """发送牛马评分"""
+    await instance.send_remarks(msg, type)

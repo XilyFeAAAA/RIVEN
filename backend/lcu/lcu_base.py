@@ -19,6 +19,8 @@ class Base:
         self._wllp = None
         self._cache = {}
         self._info = {}
+        self.champ_lock = False
+        self.rune_lock = False
 
     @property
     def valid(self) -> bool:
@@ -567,7 +569,6 @@ class Base:
         """
         cId = await self.get_conversations_id()
         summoner = await self.current_summoner_info()
-        data = {}
         if type == msgType.ALL.value:
             data = {
                 'body': msg,
@@ -632,7 +633,7 @@ class Base:
         """
         获取所有符文配置
         """
-        return await (await self._wllp.request("GET", ROUTE.rune))
+        return await (await self._wllp.request("GET", ROUTE.rune)).json()
 
     async def set_rune(self, rune):
         """
@@ -742,3 +743,11 @@ class Base:
         """
         res = await (await self._wllp.request("GET", ROUTE.champion_skin.format(championId))).json()
         return res['skins']
+
+    async def get_current_queue(self):
+        """
+        获取当前游戏模式
+        """
+        res = await (await self._wllp.request("GET", '/lol-gameflow/v1/session')).json()
+        return 430 if res['gameData']['queue']['id'] < 0 else res['gameData']['queue']['id']
+

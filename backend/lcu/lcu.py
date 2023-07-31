@@ -11,8 +11,10 @@ class Lcu(lcu_combine):
     def __init__(self):
         super().__init__()
         self.events = {
+            '/lol-champ-select/v1/current-champion': self.champ_select_subscription,
             '/lol-summoner/v1/': self.summoner_subscription,
-            '/lol-gameflow/v1/gameflow-phase': self.gameflow_subscription,
+            '/lol-gameflow/v1/session': self.gameflow_session_subscription,
+            '/lol-gameflow/v1/gameflow-phase': self.gameflow_phase_subscription,
             '/lol-champ-select/v1/session': self.champselect_subscription
         }
 
@@ -25,25 +27,34 @@ class Lcu(lcu_combine):
         return self._wllp is None
 
     async def default_handler(self, data):
-        # print(data)
+        """调试"""
         pass
 
-    async def gameflow_subscription(self, data):
+    async def gameflow_session_subscription(self, data):
+        """每回合开始解锁选英雄"""
+        self.champ_lock = False
+        self.rune_lock = False
+
+    async def champ_select_subscription(self, data):
+        """锁定英雄事件"""
+        if data['data'] != 0 and data['eventType'] == 'Create':
+            await self.auto_rune(data)
+
+    async def gameflow_phase_subscription(self, data):
         await ws.broadcast(data)
         if data['data'] == 'ReadyCheck':
             """自动接受对局"""
             if config['autoAccept']['enable']:
                 await asyncio.sleep(config['autoAccept']['delay'])
                 await self.accept()
-        elif data['data'] == 'InProgress':
-            pass
+
         elif data['data'] == 'EndOfGame':
             """举报"""
             await self.auto_report()
 
     @staticmethod
     async def summoner_subscription(data):
-        """这个事件处理游戏状态"""
+        """处理游戏状态"""
         await ws.broadcast(data)
 
     async def champselect_subscription(self, data):

@@ -46,6 +46,48 @@ def async_timeit(async_func):
         start = time.time()
         res = await async_func(*args, **kwargs)
         end = time.time()
-        print(f"{async_func.__name__} is executed for {end-start}s")
+        print(f"{async_func.__name__} is executed for {end - start}s")
         return res
+
     return wrapper
+
+
+def get_gamemode_byQueue(queue) -> str:
+    if queue == 420 or queue == 430 or queue == 440: return 'rank'
+    if queue == 450: return 'aram'
+    if queue == 900 or queue == 1010 or queue == 1900: return 'urf'
+    return 'rank'
+
+
+def check_teamup(team):
+    """
+    组队检测
+    """
+    arr1 = []
+    arr2 = []
+    for i in range(len(team)):
+        for j in range(i + 1, len(team)):
+            overlap = list(set(team[i]['gameIds']) & set(team[j]['gameIds']))
+            if len(overlap) >= 2:
+                if team[i]['summonerName'] not in arr1 and team[j]['summonerName'] not in arr1:
+                    if len(arr1) == 0:
+                        if team[i]['summonerName'] not in arr1:
+                            arr1.append(team[i]['summonerName'])
+                        if team[j]['summonerName'] not in arr1:
+                            arr1.append(team[j]['summonerName'])
+                    else:
+                        if team[i]['summonerName'] not in arr2:
+                            arr2.append(team[i]['summonerName'])
+                        if team[j]['summonerName'] not in arr2:
+                            arr2.append(team[j]['summonerName'])
+                if team[i]['summonerName'] in arr1 or team[j]['summonerName'] in arr1:
+                    if team[i]['summonerName'] not in arr1:
+                        arr1.append(team[i]['summonerName'])
+                    if team[j]['summonerName'] not in arr1:
+                        arr1.append(team[j]['summonerName'])
+    if len(arr1) == 1:
+        arr1 = []
+    if len(arr2) == 1:
+        arr2 = []
+    print(arr1, arr2)
+    return arr1, arr2
