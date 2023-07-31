@@ -1,0 +1,184 @@
+{
+  "id": "4150660",
+  "name": "telehub",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "8106245",
+      "name": "close",
+      "font_class": "close",
+      "unicode": "e69e",
+      "unicode_decimal": 59038
+    },
+    {
+      "icon_id": "11077391",
+      "name": "垃圾桶",
+      "font_class": "lajitong",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
+      "icon_id": "11195053",
+      "name": "铅笔",
+      "font_class": "qianbi",
+      "unicode": "e661",
+      "unicode_decimal": 58977
+    },
+    {
+      "icon_id": "4936458",
+      "name": "gift",
+      "font_class": "gift",
+      "unicode": "e842",
+      "unicode_decimal": 59458
+    },
+    {
+      "icon_id": "17412302",
+      "name": "GIF",
+      "font_class": "GIF",
+      "unicode": "e686",
+      "unicode_decimal": 59014
+    },
+    {
+      "icon_id": "24492833",
+      "name": "Upload",
+      "font_class": "Upload",
+      "unicode": "e618",
+      "unicode_decimal": 58904
+    },
+    {
+      "icon_id": "1194268",
+      "name": "question",
+      "font_class": "question",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "1309146",
+      "name": "收件箱,纸,办公室,全,文件,文件,线性,扁平,填充,单色,简约,圆润",
+      "font_class": "12",
+      "unicode": "e6ac",
+      "unicode_decimal": 59052
+    },
+    {
+      "icon_id": "1567538",
+      "name": "hashtag",
+      "font_class": "hashtag",
+      "unicode": "e65f",
+      "unicode_decimal": 58975
+    },
+    {
+      "icon_id": "4114086",
+      "name": "group",
+      "font_class": "group",
+      "unicode": "e694",
+      "unicode_decimal": 59028
+    },
+    {
+      "icon_id": "15644380",
+      "name": "图钉",
+      "font_class": "tuding",
+      "unicode": "e6cb",
+      "unicode_decimal": 59083
+    },
+    {
+      "icon_id": "18991686",
+      "name": "notice",
+      "font_class": "notice",
+      "unicode": "e869",
+      "unicode_decimal": 59497
+    },
+    {
+      "icon_id": "21302936",
+      "name": "频道",
+      "font_class": "pindao",
+      "unicode": "e699",
+      "unicode_decimal": 59033
+    },
+    {
+      "icon_id": "36017",
+      "name": "friend_add",
+      "font_class": "friendadd",
+      "unicode": "e6ca",
+      "unicode_decimal": 59082
+    },
+    {
+      "icon_id": "36019",
+      "name": "friend",
+      "font_class": "friend",
+      "unicode": "e6cc",
+      "unicode_decimal": 59084
+    },
+    {
+      "icon_id": "1727440",
+      "name": "213麦克风-线性",
+      "font_class": "maikefeng-xianxing",
+      "unicode": "e8c2",
+      "unicode_decimal": 59586
+    },
+    {
+      "icon_id": "4765891",
+      "name": "setting",
+      "font_class": "setting",
+      "unicode": "e78e",
+      "unicode_decimal": 59278
+    },
+    {
+      "icon_id": "6801370",
+      "name": "Headset-2",
+      "font_class": "Headset-",
+      "unicode": "e60d",
+      "unicode_decimal": 58893
+    },
+    {
+      "icon_id": "6801395",
+      "name": "Mute-Headset",
+      "font_class": "Mute-Headset",
+      "unicode": "e619",
+      "unicode_decimal": 58905
+    },
+    {
+      "icon_id": "15644344",
+      "name": "静音",
+      "font_class": "jingyin",
+      "unicode": "e6c2",
+      "unicode_decimal": 59074
+    },
+    {
+      "icon_id": "372126",
+      "name": "cc-chat",
+      "font_class": "cc-chat",
+      "unicode": "e620",
+      "unicode_decimal": 58912
+    },
+    {
+      "icon_id": "1433700",
+      "name": "compass",
+      "font_class": "compass",
+      "unicode": "e62a",
+      "unicode_decimal": 58922
+    },
+    {
+      "icon_id": "4767031",
+      "name": "download",
+      "font_class": "download",
+      "unicode": "e7ef",
+      "unicode_decimal": 59375
+    },
+    {
+      "icon_id": "7834345",
+      "name": "plus",
+      "font_class": "plus",
+      "unicode": "e8fe",
+      "unicode_decimal": 59646
+    },
+    {
+      "icon_id": "36242442",
+      "name": "上拉",
+      "font_class": "shangla",
+      "unicode": "e640",
+      "unicode_decimal": 58944
+    }
+  ]
+}

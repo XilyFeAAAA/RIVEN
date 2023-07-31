@@ -1,0 +1,74 @@
+这是包含了游戏玩家在一场游戏中的各项统计数据的对象。下面是各个属性的含义：
+
+- assists: 助攻数
+- causedEarlySurrender: 是否导致了早期投降
+- champLevel: 游戏结束时的英雄等级
+- combatPlayerScore: 战斗得分
+- damageDealtToObjectives: 对目标造成的伤害（比如龙和小兵）
+- damageDealtToTurrets: 对防御塔造成的伤害
+- damageSelfMitigated: 自己减少的伤害值
+- deaths: 死亡次数
+- doubleKills: 双杀数
+- earlySurrenderAccomplice: 是否是早期投降的同谋
+- firstBloodAssist: 是否参与了首杀
+- firstBloodKill: 是否击杀了首个敌人
+- firstInhibitorAssist: 是否参与了第一座护盾塔的摧毁
+- firstInhibitorKill: 是否摧毁了第一座护盾塔
+- firstTowerAssist: 是否参与了第一座防御塔的摧毁
+- firstTowerKill: 是否摧毁了第一座防御塔
+- gameEndedInEarlySurrender: 游戏是否在早期投降中结束
+- gameEndedInSurrender: 游戏是否在投降中结束
+- goldEarned: 游戏中获取的金币数
+- goldSpent: 游戏中花费的金币数
+- inhibitorKills: 摧毁的护盾塔的数量
+- item0 to item6: 玩家所购买的装备的 ID
+- killingSprees: 连续击杀数
+- kills: 击杀数
+- largestCriticalStrike: 最大暴击伤害
+- largestKillingSpree: 最大连杀数
+- largestMultiKill: 最大多杀数
+- longestTimeSpentLiving: 游戏中最长的存活时间
+- magicDamageDealt: 对敌方英雄造成的魔法伤害量
+- magicDamageDealtToChampions: 对敌方英雄造成的魔法伤害量
+- magicalDamageTaken: 承受的魔法伤害值
+- neutralMinionsKilled: 打死的野怪数量
+- neutralMinionsKilledEnemyJungle: 杀死敌方野怪数量
+- neutralMinionsKilledTeamJungle: 杀死己方野怪数量
+- objectivePlayerScore: 目标得分
+- participantId: 玩家在游戏中的参赛编号
+- pentaKills: 五杀次数
+- perk0 to perk5: 玩家所选用的符文的 ID
+- perk0Var1 to perk5Var3: 符文变量（一般用于描述符文的效果值）
+- perkPrimaryStyle: 主符文样式
+- perkSubStyle: 副符文样式
+- physicalDamageDealt: 对敌方英雄造成的物理伤害量
+- physicalDamageDealtToChampions: 对敌方英雄造成的物理伤害量
+- physicalDamageTaken: 承受的物理伤害值
+- playerAugment1 to playerAugment4: 玩家所选用的升级技能的 ID
+- playerScore0 to playerScore9: 玩家得分
+- playerSubteamId: 玩家所属的子队编号
+- quadraKills: 四杀次数
+- sightWardsBoughtInGame: 购买的视野守卫数量
+- subteamPlacement: 子队排名
+- teamEarlySurrendered: 是否早期投降
+- timeCCingOthers: 眩晕敌人的时间
+- totalDamageDealt: 对敌方英雄造成的总伤害值
+- totalDamageDealtToChampions: 对敌方英雄造成的总伤害值
+- totalDamageTaken: 承受的总伤害值
+- totalHeal: 总治疗量
+- totalMinionsKilled: 击杀的小兵数量
+- totalPlayerScore: 玩家得分
+- totalScoreRank: 总分排名
+- totalTimeCrowdControlDealt: 对敌方英雄施加的控制技能时间
+- totalUnitsHealed: 总治疗次数
+- tripleKills: 三杀次数
+- trueDamageDealt: 对敌方英雄造成的真实伤害值
+- trueDamageDealtToChampions: 对敌方英雄造成的真实伤害值
+- trueDamageTaken: 承受的真实伤害值
+- turretKills: 摧毁的防御塔数量
+- unrealKills: 超神次数
+- visionScore: 视野得分
+- visionWardsBoughtInGame: 购买的视野守卫数量
+- wardsKilled: 摧毁的守卫数量
+- wardsPlaced: 放置的守卫数量
+- win: 游戏是否获胜
